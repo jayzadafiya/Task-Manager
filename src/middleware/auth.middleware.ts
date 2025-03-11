@@ -4,11 +4,11 @@ import { NextFunction, Response } from "express";
 import { AuthRequest } from "../interfaces/auth-request.interface";
 import { BadRequestException } from "../utils/exceptions";
 
-exports.protect = async (
+const protect = async (
   req: AuthRequest,
   res: Response,
   next: NextFunction
-) => {
+): Promise<void> => {
   try {
     let token;
 
@@ -17,7 +17,7 @@ exports.protect = async (
       req.headers.authorization.startsWith("Bearer")
     ) {
       token = req.headers.authorization.split(" ")[1];
-    } else if (req.cookies.jwt) {
+    } else if (req?.cookies?.jwt) {
       token = req.cookies.jwt;
     }
 
@@ -52,6 +52,7 @@ exports.protect = async (
 
     next();
   } catch (error: any) {
-    return res.status(error.statusCode).json({ message: error.message });
+    next(error);
   }
 };
+export default protect;

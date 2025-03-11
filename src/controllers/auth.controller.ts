@@ -61,7 +61,7 @@ class authController {
     }
   };
 
-  login = async (req: AuthRequest, res: Response) => {
+  login = async (req: AuthRequest, res: Response): Promise<any> => {
     try {
       const { email, password } = req.body;
 

@@ -1,24 +1,17 @@
 import * as express from "express";
 import { AuthController } from "../controllers/auth.controller";
-import { validateSignup } from "../middleware/validations/validate-signup.middleware";
-import { validateLogin } from "../middleware/validations/validate-login.middleware";
+import { validateLogin, validateSignUp } from "../validations/auth.validation";
+import { validateRequest } from "../middleware/validateRequest";
 
 const authRouter = express.Router();
 
 authRouter.post(
   "/signup",
-  validateSignup,
-  (req: any, res: express.Response, next: express.NextFunction) => {
-    AuthController.signup(req, res).catch(next);
-  }
+  validateSignUp,
+  validateRequest,
+  AuthController.signup
 );
 
-authRouter.post(
-  "/login",
-  validateLogin,
-  (req: any, res: express.Response, next: express.NextFunction) => {
-    AuthController.login(req, res).catch(next);
-  }
-);
+authRouter.post("/login", validateLogin, validateRequest, AuthController.login);
 
 export default authRouter;

@@ -1,7 +1,6 @@
-import { body, validationResult } from "express-validator";
-import { Request, Response, NextFunction } from "express";
+import { body } from "express-validator";
 
-export const validateLogin: any = [
+export const validateLogin = [
   body("email")
     .trim()
     .isEmail()
@@ -17,12 +16,16 @@ export const validateLogin: any = [
     .withMessage("Password must contain at least one number")
     .matches(/[\W_]/)
     .withMessage("Password must contain at least one special character"),
+];
 
-  (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    next();
-  },
+export const validateSignUp = [
+  ...validateLogin,
+  body("username")
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage("Username must be 3-30 characters long"),
+  body("role")
+    .optional()
+    .isIn(["Admin", "User"])
+    .withMessage("Role must be either 'Admin' or 'User'"),
 ];

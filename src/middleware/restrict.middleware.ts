@@ -2,7 +2,7 @@ import { NextFunction, Response } from "express";
 import { AuthRequest } from "../interfaces/auth-request.interface";
 import { ForbiddenException } from "../utils/exceptions";
 
-exports.restrictTo = (...roles: string[]) => {
+const restrictTo = (...roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!roles.includes(req.user?.role!)) {
       throw new ForbiddenException(
@@ -12,3 +12,4 @@ exports.restrictTo = (...roles: string[]) => {
     next();
   };
 };
+export default restrictTo;
