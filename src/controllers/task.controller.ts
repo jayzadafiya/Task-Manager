@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import TaskModel from "../models/Task.model";
 import { Request, Response } from "express";
-import { BadRequestException } from "../utils/exceptions";
+import { BadRequestException, NotFoundException } from "../utils/exceptions";
 import { createOne, deleteOne, getOne, updateOne } from "../utils/helper";
 import { AuthRequest } from "../interfaces/auth-request.interface";
 
@@ -119,6 +119,49 @@ class taskController {
       res
         .status(200)
         .json({ success: true, message: "Task assigned successfully", task });
+    } catch (error: any) {
+      res.status(error.statusCode).json({ message: error.message });
+    }
+  };
+
+  updateTaskStatus = async (req: AuthRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const validStatuses = ["Pending", "In Progress", "Completed"];
+      if (!validStatuses.includes(status)) {
+        throw new BadRequestException(
+          "Invalid status value. Use: Pending, In Progress, Completed."
+        );
+      }
+
+      const task = await getOne(TaskModel, new mongoose.Types.ObjectId(id));
+      if (!task) {
+        throw new NotFoundException("Task not found.");
+      }
+
+      const isTaskOwner =
+        task.createdBy.toString() === req.user?._id.toString();
+      const isTaskAssigned =
+        task.assignedTo?.toString() === req.user?._id.toString();
+      const isAdmin = req.user?.role === "Admin";
+
+      if (!isAdmin && !isTaskOwner && !isTaskAssigned) {
+        throw new BadRequestException(
+          "You do not have permission to update this task."
+        );
+      }
+
+      task.status = status;
+
+      await updateOne(TaskModel, new mongoose.Types.ObjectId(id), {
+        status,
+      });
+
+      res
+        .status(200)
+        .json({ message: "Task status updated successfully.", task });
     } catch (error: any) {
       res.status(error.statusCode).json({ message: error.message });
     }

@@ -39,12 +39,20 @@ taskRouter.delete(
   validateRequest,
   TaskController.deleteTask
 );
-taskRouter.put(
+taskRouter.patch(
   "/:id/assign",
   authMiddleware,
   validateAssignTask,
   validateRequest,
   TaskController.assignTask
+);
+
+taskRouter.patch(
+  "/:id/status",
+  authMiddleware,
+  validateTaskId,
+  validateRequest,
+  TaskController.updateTaskStatus
 );
 
 export default taskRouter;
