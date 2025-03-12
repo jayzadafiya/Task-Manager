@@ -1,4 +1,5 @@
 import { body, param } from "express-validator";
+import * as moment from "moment";
 
 export const validateCreateTask = [
   body("title").notEmpty().withMessage("Title is required").trim(),
@@ -7,7 +8,15 @@ export const validateCreateTask = [
     .optional()
     .isIn(["Pending", "In Progress", "Completed"])
     .withMessage("Status must be one of: Pending, In Progress, Completed"),
-  body("dueDate").isISO8601().withMessage("Invalid date format"),
+  body("dueDate")
+    .isISO8601()
+    .withMessage("Invalid date format")
+    .custom((value) => {
+      if (moment(value).isBefore(moment().startOf("day"))) {
+        throw new Error("Due date must be today or a future date.");
+      }
+      return true;
+    }),
 ];
 
 export const validateUpdateTask = [
@@ -18,7 +27,16 @@ export const validateUpdateTask = [
     .optional()
     .isIn(["Pending", "In Progress", "Completed"])
     .withMessage("Status must be one of: Pending, In Progress, Completed"),
-  body("dueDate").optional().isISO8601().withMessage("Invalid date format"),
+  body("dueDate")
+    .optional()
+    .isISO8601()
+    .withMessage("Invalid date format")
+    .custom((value) => {
+      if (moment(value).isBefore(moment().startOf("day"))) {
+        throw new Error("Due date must be today or a future date.");
+      }
+      return true;
+    }),
 ];
 
 export const validateTaskId = [
