@@ -6,6 +6,10 @@ import * as cors from "cors";
 import connectDB from "./src/config/db.config";
 import globalErrorHandler from "./src/middleware/error-handler.middleware";
 import router from "./src/routes/v1.router";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import * as ExpressMongoSanitize from "express-mongo-sanitize";
+const xss = require("xss-clean");
 
 const app = express();
 const PORT = process.env.PORT;
@@ -14,6 +18,18 @@ connectDB();
 
 app.use(cors());
 app.use(express.json());
+
+app.use(helmet());
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: "Too many request for this Ip, please try again in a hour",
+});
+
+app.use(limiter);
+app.use(ExpressMongoSanitize());
+
+app.use(xss());
 
 app.use("/api/v1", router);
 
