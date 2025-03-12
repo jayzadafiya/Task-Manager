@@ -1,28 +1,53 @@
 import mongoose from "mongoose";
 import TaskModel from "../models/Task.model";
 import { Request, Response } from "express";
-import { BadRequestException, NotFoundException } from "../utils/exceptions";
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from "../utils/exceptions";
 import { createOne, deleteOne, getOne, updateOne } from "../utils/helper";
 import { AuthRequest } from "../interfaces/auth-request.interface";
+import AuditLogModel from "../models/AuditLog.model";
 
 class taskController {
   private checkTaskOwnership = async (req: AuthRequest, id: string) => {
     const task = await getOne(TaskModel, new mongoose.Types.ObjectId(id));
 
     if (!task) {
-      throw new BadRequestException("Task not found");
+      throw new NotFoundException("Task not found");
     }
 
     if (
       task?.createdBy.toString() !== req.user?._id?.toString() &&
       req.user?.role !== "Admin"
     ) {
-      throw new BadRequestException(
+      throw new UnauthorizedException(
         "This is not your task. You can't create task for others."
       );
     }
 
     return task;
+  };
+
+  private logTaskAction = async (
+    userId: string,
+    taskId: string,
+    action: string
+  ) => {
+    try {
+      await AuditLogModel.findOneAndUpdate(
+        { taskId },
+        {
+          $push: {
+            logs: { action, user: userId, timestamp: new Date() },
+          },
+        },
+        { upsert: true, new: true }
+      );
+    } catch (error) {
+      console.error("Error logging task action:", error);
+    }
   };
 
   getTaskById = async (req: Request, res: Response) => {
@@ -55,7 +80,11 @@ class taskController {
         ...req.body,
         createdBy: req.user?._id!,
       });
-
+      await this.logTaskAction(
+        req.user?._id?.toString()!,
+        task?._id?.toString()!,
+        "Created"
+      );
       res
         .status(201)
         .json({ success: true, message: "Task created successfully", task });
@@ -78,6 +107,12 @@ class taskController {
         throw new BadRequestException("Task not found.");
       }
 
+      await this.logTaskAction(
+        req.user?._id?.toString()!,
+        updatedTask?._id?.toString()!,
+        "Updated"
+      );
+
       res.json({
         success: true,
         message: "Task updated successfully",
@@ -88,13 +123,18 @@ class taskController {
     }
   };
 
-  deleteTask = async (req: Request, res: Response) => {
+  deleteTask = async (req: AuthRequest, res: Response) => {
     try {
       const { id } = req.params;
       await this.checkTaskOwnership(req, id);
 
       await deleteOne(TaskModel, new mongoose.Types.ObjectId(id));
-      res.json({ success: true, message: "Task deleted successfully" });
+
+      await this.logTaskAction(req.user?._id?.toString()!, id, "Updated");
+
+      res
+        .status(204)
+        .json({ success: true, message: "Task deleted successfully" });
     } catch (error: any) {
       res.status(error.statusCode).json({ message: error.message });
     }
@@ -148,7 +188,7 @@ class taskController {
       const isAdmin = req.user?.role === "Admin";
 
       if (!isAdmin && !isTaskOwner && !isTaskAssigned) {
-        throw new BadRequestException(
+        throw new UnauthorizedException(
           "You do not have permission to update this task."
         );
       }
@@ -162,6 +202,26 @@ class taskController {
       res
         .status(200)
         .json({ message: "Task status updated successfully.", task });
+    } catch (error: any) {
+      res.status(error.statusCode).json({ message: error.message });
+    }
+  };
+
+  getTaskAuditLogs = async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      await this.checkTaskOwnership(req, id);
+
+      const logs = await AuditLogModel.findOne({ taskId: id }).populate(
+        "logs.user",
+        "name email"
+      );
+
+      if (!logs) {
+        throw new NotFoundException("No audit logs found for this task");
+      }
+
+      res.status(200).json({ success: true, logs });
     } catch (error: any) {
       res.status(error.statusCode).json({ message: error.message });
     }

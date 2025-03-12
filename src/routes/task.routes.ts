@@ -8,6 +8,7 @@ import {
   validateUpdateTask,
 } from "../validations/task.validation";
 import { validateRequest } from "../middleware/validateRequest";
+import restrictTo from "../middleware/restrict.middleware";
 const taskRouter = Router();
 
 taskRouter.get(
@@ -16,6 +17,14 @@ taskRouter.get(
   validateTaskId,
   validateRequest,
   TaskController.getTaskById
+);
+
+taskRouter.get(
+  "/:id/audit-logs",
+  authMiddleware,
+  validateTaskId,
+  validateRequest,
+  TaskController.getTaskAuditLogs
 );
 
 taskRouter.post(

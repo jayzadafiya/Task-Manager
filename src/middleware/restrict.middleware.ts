@@ -2,7 +2,7 @@ import { NextFunction, Response } from "express";
 import { AuthRequest } from "../interfaces/auth-request.interface";
 import { ForbiddenException } from "../utils/exceptions";
 
-const restrictTo = (...roles: string[]) => {
+const restrictTo = (...roles: string[]): any => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!roles.includes(req.user?.role!)) {
       throw new ForbiddenException(
