@@ -266,7 +266,7 @@ class taskController {
   };
 
   startCronJobs = () => {
-    cron.schedule("* * * * *", this.taskDueReminder);
+    cron.schedule("0 0 * * *", this.taskDueReminder);
     console.log("Task reminder cron job scheduled.");
   };
 }
