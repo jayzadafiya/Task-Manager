@@ -10,6 +10,8 @@ import { createOne, deleteOne, getOne, updateOne } from "../utils/helper";
 import { AuthRequest } from "../interfaces/auth-request.interface";
 import AuditLogModel from "../models/AuditLog.model";
 import { io } from "../..";
+import moment = require("moment");
+import * as cron from "node-cron";
 
 class taskController {
   private checkTaskOwnership = async (req: AuthRequest, id: string) => {
@@ -239,6 +241,33 @@ class taskController {
     } catch (error: any) {
       res.status(error.statusCode).json({ message: error.message });
     }
+  };
+
+  taskDueReminder = async () => {
+    console.log("Checking for upcoming due tasks...");
+
+    const now = moment();
+    const nextDay = moment().add(1, "day");
+
+    const tasks = await TaskModel.find({
+      dueDate: { $gte: now.toDate(), $lt: nextDay.toDate() },
+      status: { $ne: "completed" },
+    });
+
+    console.log(tasks);
+
+    tasks.forEach((task) => {
+      this.notifyUser(
+        task?.assignedTo?.toString(),
+        `Reminder: Task "${task.title}" is due soon!`
+      );
+      console.log(`Reminder sent for task "${task.title}"`);
+    });
+  };
+
+  startCronJobs = () => {
+    cron.schedule("* * * * *", this.taskDueReminder);
+    console.log("Task reminder cron job scheduled.");
   };
 }
 

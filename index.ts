@@ -11,6 +11,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import * as ExpressMongoSanitize from "express-mongo-sanitize";
 import { configureWebSocket } from "./src/config/socket.config";
+import { TaskController } from "./src/controllers/task.controller";
 const xss = require("xss-clean");
 
 const app = express();
@@ -31,6 +32,7 @@ const limiter = rateLimit({
   message: "Too many request for this Ip, please try again in a hour",
 });
 
+TaskController.startCronJobs();
 app.use(limiter);
 app.use(ExpressMongoSanitize());
 
