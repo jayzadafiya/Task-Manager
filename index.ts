@@ -3,18 +3,23 @@ dotenv.config();
 
 import * as express from "express";
 import * as cors from "cors";
+import * as http from "http";
 import connectDB from "./src/config/db.config";
 import globalErrorHandler from "./src/middleware/error-handler.middleware";
 import router from "./src/routes/v1.router";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import * as ExpressMongoSanitize from "express-mongo-sanitize";
+import { configureWebSocket } from "./src/config/socket.config";
 const xss = require("xss-clean");
 
 const app = express();
+const socketServer = http.createServer(app);
+const io = configureWebSocket(socketServer);
 const PORT = process.env.PORT;
 
 connectDB();
+export { io };
 
 app.use(cors());
 app.use(express.json());
@@ -44,7 +49,7 @@ app.use(
   }
 );
 
-const server = app.listen(PORT, () => {
+const server = socketServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 

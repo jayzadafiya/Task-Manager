@@ -9,6 +9,7 @@ import {
 import { createOne, deleteOne, getOne, updateOne } from "../utils/helper";
 import { AuthRequest } from "../interfaces/auth-request.interface";
 import AuditLogModel from "../models/AuditLog.model";
+import { io } from "../..";
 
 class taskController {
   private checkTaskOwnership = async (req: AuthRequest, id: string) => {
@@ -48,6 +49,10 @@ class taskController {
     } catch (error) {
       console.error("Error logging task action:", error);
     }
+  };
+
+  notifyUser = (userId: string, message: string) => {
+    io.to(userId).emit("notification", { message });
   };
 
   getTaskById = async (req: Request, res: Response) => {
@@ -113,6 +118,11 @@ class taskController {
         "Updated"
       );
 
+      this.notifyUser(
+        req?.user?._id.toString()!,
+        `Your Task has been updated: ${updatedTask.title}`
+      );
+
       res.json({
         success: true,
         message: "Task updated successfully",
@@ -156,6 +166,10 @@ class taskController {
         assignedTo,
       });
 
+      this.notifyUser(
+        req?.user?._id.toString()!,
+        `You have been assigned a new task: ${task.title}`
+      );
       res
         .status(200)
         .json({ success: true, message: "Task assigned successfully", task });

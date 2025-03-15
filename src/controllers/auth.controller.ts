@@ -6,6 +6,7 @@ import { BadRequestException } from "../utils/exceptions";
 import { createOne, getOneByEmail } from "../utils/helper";
 import { IUser } from "../interfaces/user.interface";
 import { AuthRequest } from "../interfaces/auth-request.interface";
+import { io } from "../..";
 
 class authController {
   private signToken = (id: mongoose.Types.ObjectId) => {
@@ -35,6 +36,8 @@ class authController {
 
     res.cookie("jwt", token, cookieOption);
     user.password = undefined;
+
+    io.emit("register", user._id.toString());
 
     res.status(statusCode).json({
       status: "success",

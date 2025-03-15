@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login & WebSocket</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #f4f4f4;
+        margin: 0;
+      }
+      h2,
+      h3 {
+        color: #333;
+      }
+      .container {
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        width: 300px;
+      }
+      input {
+        width: -webkit-fill-available;
+        padding: 10px;
+        margin: 8px 0;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      button:hover {
+        background-color: #218838;
+      }
+      .notifications {
+        margin-top: 20px;
+        width: 300px;
+        text-align: left;
+      }
+      ul {
+        list-style-type: none;
+        padding: 0;
+      }
+      li {
+        background: #007bff;
+        color: white;
+        padding: 10px;
+        border-radius: 5px;
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Login & Connect WebSocket</h2>
+
+      <div>
+        <input type="email" id="email" placeholder="Enter email" />
+      </div>
+      <div>
+        <input type="password" id="password" placeholder="Enter password" />
+      </div>
+      <button onclick="login()">Login</button>
+    </div>
+
+    <div class="notifications">
+      <h3>Notifications:</h3>
+      <ul id="notificationList"></ul>
+    </div>
+
+    <script>
+      let socket;
+      const API_BASE_URL = "http://localhost:3000";
+
+      async function login() {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        if (!email || !password) {
+          alert("Please enter email and password.");
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            const {
+              token,
+              data: { user },
+            } = data;
+            localStorage.setItem("token", token);
+            localStorage.setItem("userId", user._id);
+
+            alert("Login successful!");
+            connectWebSocket(user._id);
+          } else {
+            alert(data.message || "Login failed.");
+          }
+        } catch (error) {
+          console.error("Login error:", error);
+          alert("Error logging in. Try again.");
+        }
+      }
+
+      function connectWebSocket(userId) {
+        if (!userId) return;
+
+        socket = io(API_BASE_URL);
+
+        socket.on("connect", () => {
+          console.log("Connected to WebSocket:", socket.id);
+          socket.emit("register", userId);
+        });
+
+        socket.on("notification", (data) => {
+          console.log("Notification received:", data.message);
+          showNotification(data.message);
+        });
+
+        socket.on("disconnect", () => {
+          console.log("Disconnected from WebSocket");
+        });
+      }
+
+      function showNotification(message) {
+        const notificationList = document.getElementById("notificationList");
+        const listItem = document.createElement("li");
+        listItem.textContent = message;
+        notificationList.appendChild(listItem);
+      }
+
+      window.onload = () => {
+        const storedUserId = localStorage.getItem("userId");
+        if (storedUserId) {
+          connectWebSocket(storedUserId);
+        }
+      };
+    </script>
+  </body>
+</html>
